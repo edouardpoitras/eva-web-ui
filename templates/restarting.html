@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    {{ super() }}
+    <style>
+        #loading {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border: 4px solid #333;
+            border-right-color: transparent;
+            border-radius: 50%;
+            box-shadow: 0 0 25px 2px #eee;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            50%  { transform: rotate(180deg); }
+            to   { transform: rotate(360deg); }
+        }
+    </style>
+{% endblock styles %}
+
+{% block content %}
+<div class="container">
+    {% include "alerts.html" %}
+    <div class="row">
+        <div class="col-md-12">
+            <h1>{{ restarting_title }}</h1>
+            <div class="restarting-message">{{ restarting_message }} <span id="loading"></span></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function() {
+            // The function to check if the restart is complete.
+            function restart_complete_check() {
+                $.ajax({
+                    type: 'HEAD',
+                    url: '/',
+                    success: function() {
+                        $('.restarting-message').html('{{ redirect_message }}');
+                        setTimeout(function () {
+                            $(location).attr('href', '{{ redirect_url }}')
+                        }, 2000);
+                    },
+                    error: function(jqxhr, text_status, error) {
+                        console.log(jqxhr);
+                        console.log(text_status);
+                        console.log(error);
+                        setTimeout(restart_complete_check, 1000);
+                    },
+                });
+            }
+            // Restart Eva.
+            $.ajax({
+                url: '/restart',
+            });
+            // Start the restart complete checker.
+            restart_complete_check();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    {% include "alerts.html" %}
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Metrics</h1>
+            <div class="row">
+                {% for metric in metrics %}
+                    <div class="col-md-3 text-center">
+                        <h4 class="metric-name">{{ metric['name'] }}</h4>
+                        <div class="metric-value">{{ metric['value'] }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Information</h1>
+            {% for info in information %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <strong class="info-name">{{ info['name'] }}:</strong>
+                        <span class="info-value">{{ info['value'] }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <br /><a href="/restart-page" class="btn btn-primary">Restart Eva</a>
+</div>
+{% endblock %}
