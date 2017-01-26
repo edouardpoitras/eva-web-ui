@@ -1,15 +1,18 @@
+import os
 import datetime
 import gossip
 from functools import wraps
 from flask import Flask, render_template, request, Response
 from flask_bootstrap import Bootstrap
 import eva.util
+from web_ui_util import get_ip_address
 from eva.config import get_eva_directory, get_eva_config_file
 from eva import START_TIME
 from eva import log
 from eva import conf
 from eva import scheduler
 
+PATH = os.path.dirname(os.path.realpath(__file__))
 app = Flask(__name__)
 Bootstrap(app)
 
@@ -19,10 +22,14 @@ def eva_post_boot():
 
 def start_web_ui():
     gossip.trigger('eva.web_ui.start', app=app)
-    host = conf['plugins']['web_ui']['config']['host']
+    bind_address = conf['plugins']['web_ui']['config']['bind_address']
     port = conf['plugins']['web_ui']['config']['port']
-    log.info('Starting Web UI at %s:%s' %(host, port))
-    app.run(host=host, port=port)
+    key_path = '%s/eva.local.key' %PATH
+    crt_path = '%s/eva.local.crt' %PATH
+    if not os.path.exists(key_path):
+        os.system('/bin/sh %s/gen_cert.sh' %PATH)
+    log.info('Starting Web UI at https://%s:%s' %(get_ip_address(), port))
+    app.run(host=bind_address, port=port, ssl_context=(crt_path, key_path))
 
 def check_auth(username, password):
     user = conf['plugins']['web_ui']['config']['username']
