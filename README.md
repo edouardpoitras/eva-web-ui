@@ -50,59 +50,90 @@ This plugin enables the following gossip triggers:
 
 `gossip.trigger('eva.web_ui.start', app=app)`
 
-    This trigger is fired during the `eva.post_boot` trigger and occures before the web_ui configuration options are parsed, before the certificate is generated, and before the Web UI has started.
+This trigger is fired during the `eva.post_boot` trigger and occures before the web_ui configuration options are parsed, before the certificate is generated, and before the Web UI has started.
 
-    The app parameter is the Flask object created for the Web UI.
+The app parameter is the Flask object created for the Web UI.
 
-    This trigger is most often used by other plugins in order to add URL rules to create more pages in the Web UI. Here's an example of adding a new page at '/test' which executes a function named 'test':
+This trigger is most often used by other plugins in order to add URL rules to create more pages in the Web UI. Here's an example of adding a new page at '/test' which executes a function named 'test':
 
-        @gossip.register('eva.web_ui.start')
-        def web_ui_start(app):
-            app.add_url_rule('/test', 'test', test)
+```python
+@gossip.register('eva.web_ui.start')
+def web_ui_start(app):
+    app.add_url_rule('/test', 'test', test)
+```
 
-    In this example, a function named 'test' would need to exist and it would have to return a rendered template.
+In this example, a function named 'test' would need to exist and it would have to return a rendered template. See full example below.
 
-`gossip.trigger('eva.web_ui.menu_items')`
+`gossip.trigger('eva.web_ui.menu_items', menu_items=menu_items)`
 
-    A trigger fired when rebuilding pages that gives plugins a chance to modify the menu items of the Web UI.
-    It is fired every time the `ready_menu_items()` function is called, right before returning the list of menu items for rendering.
+A trigger fired when rebuilding pages that gives plugins a chance to add/modify the menu items of the Web UI.
 
-    Here's an example usage (taken from the web_ui_conversations plugin):
+Any plugin that wishes to add a page to the Web UI would typically trigger this plugin with an empty list and use the resulting list to populate the menus for their newly added page. See full example below.
 
-        @gossip.register('eva.web_ui.menu_items', provides=['web_ui_conversations'])
-        def web_ui_menu_items():
-            menu_item = {'path': '/conversations', 'title': 'Conversations'}
-            conf['plugins']['web_ui']['config']['menu_items'].append(menu_item)
+`gossip.trigger('eva.web_ui.metrics', metrics=metrics)`
 
-    This code executes when the `ready_menu_items()` function fires the `eva.web_ui.menu_items` trigger while building the web page.
-
-    Of course the web_ui_conversations plugin also needs to use the `eva.web_ui.start` trigger in order to create a URL rule for `/conversations`.
-
-`gossip.trigger('eva.web_ui.metrics')`
-
-    A trigger that gets fired right before returning a list of metrics for rendering on the home page of the Web UI. This gives a chance for other plugins to add to this list of metrics.
-
-        @gossip.register('eva.web_ui.metrics')
-        def web_ui_menu_metrics():
-            random_metric = {'name': 'Random Metric', 'value': 'Some metric here'}
-            conf['plugins']['web_ui']['config']['metrics'].append(random_metric)
-
-    This will add a block on the landing page with the title and value specified.
+A trigger fired when building the Web UI landing page that gives a chance for plugins to add to the list of metrics. It will add a block on the landing page with the title and value specified. See full example below.
 
 `gossip.trigger('eva.web_ui.information')`
 
-    Same as the `eva.web_ui.metric` except that it adds an item to the information list on the home page.
-
-        @gossip.register('eva.web_ui.information')
-        def web_ui_menu_information():
-            info = {'name': 'Useful Info', 'value': 'Information here'}
-            conf['plugins']['web_ui']['config']['information'].append(info)
+Same as the `eva.web_ui.metric` except that it adds an item to the information list on the home page. See full example below.
 
 `gossip.trigger('eva.web_ui.index')`
 
-    A trigger that gets fired right before rendering the Web UI index (landing) page.
+A trigger that gets fired right before rendering the Web UI index (landing) page.
 
-    Note that the menu item, metric, and information arrays have already been selected for rendering by the time this trigger is fired.
+Note that the menu item, metric, and information triggers have already been fired by the time this trigger is executed.
+
+#### Trigger Full Example
+
+```python
+import gossip
+from flask import render_template_string
+
+@gossip.register('eva.web_ui.start')
+def web_ui_start(app):
+    """
+    Add a new page at '/test' that executes the `test()` function when a user
+    browses to that path.
+    """
+    app.add_url_rule('/test', 'test', test)
+
+@gossip.register('eva.web_ui.menu_items')
+def web_ui_menu_items(menu_items):
+    """
+    Add a new menu item called 'Test' that points to '/test'.
+    """
+    menu_item = {'path': '/test', 'title': 'Test'}
+    menu_items.append(menu_item)
+
+@gossip.register('eva.web_ui.metrics')
+def web_ui_metrics(metrics):
+    """
+    Add a block in the metrics section of the landing page.
+    """
+    metric = {'name': 'Some Metric', 'value': 'Value Here'}
+    metrics.append(metric)
+
+@gossip.register('eva.web_ui.information')
+def web_ui_metrics(information):
+    """
+    Add an entry in the list of information on the landing page.
+    """
+    info = {'name': 'Information', 'value': 'Info Here'}
+    information.append(info)
+
+def test():
+    # Get menu items from all plugins to display on our new page.
+    menu_items = []
+    gossip.trigger('eva.web_ui.menu_items', menu_items=menu_items)
+    test_markup = """
+        {% extends "base.html" %}
+        {% block content %}
+            This is a test.
+        {% endblock %}
+    """
+    return render_template_string(test_markup, menu_items=menu_items)
+```
 
 #### Functions
 
@@ -112,12 +143,13 @@ The function must be called within a Flask route context (such as the 'test' exa
 
 Here's an example usage:
 
-    conf['plugins']['web_ui']['module'].restart_page(
-        restarting_title='Eva', \
-        restarting_message='Restarting Eva...', \
-        redirect_message='Restart successful, redirecting...', \
-        redirect_url='/' \
-    )
+```python
+conf['plugins']['web_ui']['module'].restart_page(
+    restarting_title='Eva', \
+    restarting_message='Restarting Eva...', \
+    redirect_message='Restart successful, redirecting...', \
+    redirect_url='/')
+```
 
 ## Configuration
 
