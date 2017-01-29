@@ -18,7 +18,26 @@ Bootstrap(app)
 
 @gossip.register('eva.post_boot')
 def eva_post_boot():
-    scheduler.add_job(start_web_ui, id="eva_web_ui")
+    scheduler.add_job(start_web_ui, id='eva_web_ui')
+
+@gossip.register('eva.web_ui.menu_items', provides=['web_ui'])
+def web_ui_menu_items(menu_items):
+    home_menu = {'path': '/', 'title': 'Home'}
+    menu_items.append(home_menu)
+
+@gossip.register('eva.web_ui.metrics', provides=['web_ui'])
+def web_ui_metrics(metrics):
+    uptime = datetime.datetime.now() - START_TIME
+    metric = {'name': 'Uptime', 'value': str(uptime).split('.')[0]}
+    metrics.append(metric)
+
+@gossip.register('eva.web_ui.information', provides=['web_ui'])
+def web_ui_information(information):
+    info = [{'name': 'Eva Path', 'value': get_eva_directory()},
+            {'name': 'Eva Config File', 'value': get_eva_config_file()},
+            {'name': 'Plugin Path', 'value': conf['eva']['plugin_directory']},
+            {'name': 'Plugin Config Path', 'value': conf['eva']['config_directory']}]
+    information.extend(info)
 
 def start_web_ui():
     gossip.trigger('eva.web_ui.start', app=app)
@@ -59,33 +78,14 @@ def force_login():
     # Force login for all requests.
     pass
 
-def ready_menu_items():
-    home_menu = {'path': '/', 'title': 'Home'}
-    conf['plugins']['web_ui']['config']['menu_items'] = [home_menu]
-    gossip.trigger('eva.web_ui.menu_items')
-    return conf['plugins']['web_ui']['config']['menu_items']
-
-def ready_metrics():
-    uptime = datetime.datetime.now() - START_TIME
-    metrics = [{'name': 'Uptime', 'value': str(uptime).split('.')[0]}]
-    conf['plugins']['web_ui']['config']['metrics'] = metrics
-    gossip.trigger('eva.web_ui.metrics')
-    return conf['plugins']['web_ui']['config']['metrics']
-
-def ready_information():
-    information = [{'name': 'Eva Path', 'value': get_eva_directory()},
-                   {'name': 'Eva Config File', 'value': get_eva_config_file()},
-                   {'name': 'Plugin Path', 'value': conf['eva']['plugin_directory']},
-                   {'name': 'Plugin Config Path', 'value': conf['eva']['config_directory']}]
-    conf['plugins']['web_ui']['config']['information'] = information
-    gossip.trigger('eva.web_ui.information')
-    return conf['plugins']['web_ui']['config']['information']
-
 @app.route('/')
 def index():
-    menu_items = ready_menu_items()
-    metrics = ready_metrics()
-    information = ready_information()
+    menu_items = []
+    gossip.trigger('eva.web_ui.menu_items', menu_items=menu_items)
+    metrics = []
+    gossip.trigger('eva.web_ui.metrics', metrics=metrics)
+    information = []
+    gossip.trigger('eva.web_ui.information', information=information)
     gossip.trigger('eva.web_ui.index')
     return render_template('index.html',
                            menu_items=menu_items,
@@ -111,7 +111,8 @@ def restart_page(restarting_title='Eva',
     Alternatively, a plugin can link or redirect to /restart-page if they
     don't care about the specific restart message options.
     """
-    menu_items = ready_menu_items()
+    menu_items = []
+    gossip.trigger('eva.web_ui.menu_items', menu_items=menu_items)
     return render_template('restarting.html',
                            menu_items=menu_items,
                            restarting_title=restarting_title,
