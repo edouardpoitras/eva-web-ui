@@ -3,6 +3,8 @@ Web UI
 
 Configure and monitor Eva through a web user interface.
 
+![Web UI](/screenshot.png?raw=true "https://127.0.0.1:8080")
+
 ## Installation
 
 Web UI and [Web UI Plugins](https://github.com/edouardpoitras/eva-web-ui-plugins) are installed by default on Eva's first boot in order to facilitate the installation of other plugins through the Web UI.
